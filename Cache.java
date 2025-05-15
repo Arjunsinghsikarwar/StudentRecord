@@ -4,36 +4,50 @@ import org.hibernate.cfg.Configuration;
 
 public class Cache {
     public static void main(String[] args) {
-        System.out.println("In this class see about caching Hibernate");
-        // We use cache taki jo query execute wo agr ek baar ho rhe hain toh wo cache jo ke memory store hain , uss me usska result save ho jaaye and jiske databse pr query ke jaada laod na ho.
-        // With help of the cache reponse time kaam hoota hain and load database pr kaam ho jaata hain.
+        System.out.println("In this class, we are learning about caching in Hibernate.");
 
-        Configuration configuration = new Configuration().configure().addAnnotatedClass(Side.class);  // here we put the class name in which entity class is.
+        // We use caching so that if a query is executed once, its result can be stored in memory (cache),
+        // reducing the load on the database.
+        // With caching, response time improves and fewer queries are sent to the database.
+
+        Configuration configuration = new Configuration().configure().addAnnotatedClass(Side.class);  
+        // We register the entity class we want to work with.
+
         SessionFactory sessionFactory = configuration.buildSessionFactory();
+
+        // First session
         Session session = sessionFactory.openSession();
 
-        //Level1 cache by default hoota hain.
-        Side student = session.get(Side.class,12);
-        Side student1 = session.get(Side.class,12);  // By making the 2 object , the query would execute only for 1 time pnly even i we get two result print .
+        // Level 1 cache is enabled by default in Hibernate and is session-specific.
+        Side student = session.get(Side.class, 12);
+        Side student1 = session.get(Side.class, 12);  
+        // Even though we call get() twice, the query will be executed only once 
+        // because the result is cached in the session.
 
         System.out.println(student1);
-        System.out.println(student);    // cache seesion specific hoota  hain.
+        System.out.println(student);    
 
-        session.close();
+        session.close();  // Always close sessions — it's good practice.
 
-        //But if change the Session the query would execute 2 times then.
+        // Now, if we create a new session, the cache from the previous session won't be used.
+        // The query will execute again.
+
         Session session1 = sessionFactory.openSession();
+        Side student2 = session1.get(Side.class, 12);
+        System.out.println(student2);  // Since this is a new session, the query will be executed again.
 
-        // Remeber that , if even i after ehcache dependecies in pom.xml we have add some properties to make that work in the hibernate.cfg.xml file .
-        // Even after setup of the ehcaceh file , it will not work , to mae that we have the final step which add the @Cacheable notation on the class jishe humhe cache krna hain ke nahi.
+        session1.close();
 
+        // To avoid this repeated execution in different sessions, we use **Level 2 cache** with providers like Ehcache.
 
+        // Note:
+        // Even after adding the Ehcache dependency in pom.xml, we must configure some properties 
+        // in hibernate.cfg.xml to enable second-level caching.
 
-        Side student2 = session1.get(Side.class,12);
-        System.out.println(student);  // Since we have alreay that this in cache , but due change in session we the query will get execute and then we will gwt result.
-        session1.close();              // to resolve this use , we the Level2 cache by using the ehcache . (Remeber that we have use the same version of ehcache as hibernate).
+        // Also, enabling second-level cache requires us to:
+        // - Annotate the entity class with @Cacheable
+        // - Add @Cache(usage = CacheConcurrencyStrategy.READ_ONLY or NONSTRICT_READ_WRITE, etc.)
 
-
+        // Remember: Ehcache version must be compatible with the Hibernate version.
     }
-} // After this even after session getting changed the query only get executed by only once.
-
+}
